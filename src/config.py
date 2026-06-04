@@ -44,7 +44,9 @@ class Settings(BaseSettings):
 
     # Fichiers techniques
     DATASET_ID_FILE: Path = RAW_DATA_DIR / "dataset_hub_id.txt"
-    PRODUCTION_MODEL_PATH: Path = BASE_DIR.parent / "exp-14.pt"
+    PRODUCTION_MODEL_PATH: Path = Field(
+        default=BASE_DIR / "exp-14.pt", validation_alias="MODEL_PATH"
+    )
 
     # Configuration du chargement
     model_config = SettingsConfigDict(

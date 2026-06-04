@@ -1,11 +1,2 @@
-pre-commit
-ruff
-black
-
-ultralytics
-pyyaml
-opencv-python
-python-decouple
-
-fastapi
-uvicorn
+ruff>=0.4.4
+pre-commit>=3.7.1

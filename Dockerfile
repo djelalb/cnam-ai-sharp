@@ -1,37 +1,37 @@
-# Image de base légère
+# Build stage
+FROM python:3.12-slim as builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Final stage
 FROM python:3.12-slim
 
-# Éviter la mise en cache des fichiers .pyc
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+WORKDIR /app
 
-# Installation des dépendances système requises par OpenCV et les libs graphiques
+# OpenCV runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     libglib2.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Création du dossier de travail
-WORKDIR /app
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
 
-# Copie des fichiers de dépendances
-COPY requirements.txt .
-
-# Installation des dépendances Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copie du code source
+# Copy app code
 COPY src/ /app/src/
-
-# Copie du modèle de production (Assurez-vous qu'il est bien à la racine du build context)
 COPY exp-14.pt /app/exp-14.pt
 
-# Variable d'environnement pour le chemin du modèle
+# Configuration
 ENV MODEL_PATH=/app/exp-14.pt
+ENV PYTHONUNBUFFERED=1
 
-# Exposition du port FastAPI
 EXPOSE 8000
 
-# Lancement de l'application via Uvicorn
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:8000/health || exit 1
+
 CMD ["uvicorn", "src.serving.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

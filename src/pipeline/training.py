@@ -80,20 +80,61 @@ class CloudTrainer:
                 },
             }
 
-            # 4. Envoi
-            logger.info("Déclenchement du job Cloud...")
+            # 4. Étape 1 : Création de l'entité Modèle
+            logger.info("Étape 1 : Création de l'entité Modèle sur la plateforme...")
             response = requests.post(
                 f"{self.api_url}/models", headers=self.headers, json=payload
             )
             response.raise_for_status()
 
             data = response.json()
-            model_id = data.get("id") or data.get("data", {}).get("id")
-
-            logger.info("✅ Entraînement Cloud lancé !")
-            logger.info(
-                f"🔗 Suivi : https://platform.ultralytics.com/models/{model_id}"
+            # On extrait l'ID du modèle créé
+            model_id = (
+                data.get("modelId") or data.get("id") or data.get("data", {}).get("id")
             )
+
+            if not model_id:
+                raise ValueError(
+                    f"Impossible de récupérer l'ID du modèle. Réponse: {data}"
+                )
+
+            logger.info(f"Modèle créé avec l'ID : {model_id}")
+
+            # 5. Étape 2 : Déclenchement du Compute Cloud
+            logger.info("Étape 2 : Démarrage de l'infrastructure Cloud (GPU)...")
+            start_payload = {
+                "modelId": model_id,
+                "trainArgs": {
+                    "model": settings.MODEL_VARIANT,
+                    "data": f"ul://{dataset_id}",
+                    "epochs": settings.EPOCHS,
+                    "patience": settings.PATIENCE,
+                    "imgsz": 640,
+                    "degrees": 15.0,
+                    "hsv_v": 0.4,
+                    "mosaic": 0.5,
+                    "fliplr": 0.5,
+                },
+            }
+
+            start_response = requests.post(
+                f"{self.api_url}/training/start",
+                headers=self.headers,
+                json=start_payload,
+            )
+
+            logger.info(f"Code HTTP Réponse (Start) : {start_response.status_code}")
+            logger.info(f"Corps de la réponse (Start) : {start_response.text}")
+
+            if start_response.status_code in [200, 201, 202]:
+                logger.info("✅ Entraînement Cloud démarré avec succès !")
+                logger.info(
+                    f"🔗 Suivi : https://platform.ultralytics.com/models/{model_id}"
+                )
+            else:
+                logger.error(
+                    f"❌ Échec du Compute Cloud. Code: {start_response.status_code}"
+                )
 
         except Exception as e:
             logger.error(f"Échec de l'entraînement : {e}")

@@ -65,6 +65,8 @@ class CloudTrainer:
                 "name": settings.ULTRALYTICS_EXP_NAME,
                 "datasetId": dataset_id,
                 "projectId": project_id,
+                "task": "detect",
+                "method": "cloud",
                 "cfg": {
                     "model": settings.MODEL_VARIANT,
                     "epochs": settings.EPOCHS,

@@ -1,10 +1,10 @@
 task: detect
 mode: train
 model: yolo11n.pt
-data: 69df63adaaddc6c8caf03a30
-epochs: 1
+data: https://hub.ultralytics.com/datasets/69df63adaaddc6c8caf03a30
+epochs: 150
 time: null
-patience: 100
+patience: 30
 batch: 16
 imgsz: 640
 save: true
@@ -14,7 +14,7 @@ device: cpu
 workers: 8
 project: null
 name: train
-exist_ok: false
+exist_ok: true
 pretrained: true
 optimizer: auto
 verbose: true
@@ -90,7 +90,7 @@ nbs: 64
 hsv_h: 0.015
 hsv_s: 0.7
 hsv_v: 0.4
-degrees: 0.0
+degrees: 15.0
 translate: 0.1
 scale: 0.5
 shear: 0.0
@@ -98,7 +98,7 @@ perspective: 0.0
 flipud: 0.0
 fliplr: 0.5
 bgr: 0.0
-mosaic: 1.0
+mosaic: 0.5
 mixup: 0.0
 cutmix: 0.0
 copy_paste: 0.0

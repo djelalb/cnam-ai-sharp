@@ -1,7 +1,9 @@
 ruff>=0.4.4
 pre-commit>=3.7.1
-ultralytics>=8.2.0
+ultralytics>=8.4.60
 Pillow>=10.3.0
 PyYAML>=6.0.1
 requests>=2.31.0
 python-dotenv>=1.0.1
+pydantic-settings>=2.2.1
+pydantic>=2.7.1

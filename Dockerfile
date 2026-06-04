@@ -10,10 +10,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# OpenCV runtime dependencies
+# OpenCV runtime dependencies (libgl1 replaces libgl1-mesa-glx in newer Debian)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

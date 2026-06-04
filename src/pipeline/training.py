@@ -102,11 +102,18 @@ class CloudTrainer:
 
             # 5. Étape 2 : Déclenchement du Compute Cloud
             logger.info("Étape 2 : Démarrage de l'infrastructure Cloud (GPU)...")
+
+            # Format attendu par le Cloud : ul://{username}/datasets/{slug}
+            dataset_uri = (
+                f"ul://{settings.ULTRALYTICS_USERNAME}/"
+                f"datasets/{settings.ULTRALYTICS_DATASET}"
+            )
+
             start_payload = {
                 "modelId": model_id,
                 "trainArgs": {
                     "model": settings.MODEL_VARIANT,
-                    "data": f"ul://{dataset_id}",
+                    "data": dataset_uri,
                     "epochs": settings.EPOCHS,
                     "patience": settings.PATIENCE,
                     "imgsz": 640,

@@ -34,6 +34,12 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="SHARP Real-time API", lifespan=lifespan)
 
 
+@app.get("/health")
+async def health_check():
+    """Vérification de l'état du serveur."""
+    return {"status": "ok", "model_loaded": inference_service.model is not None}
+
+
 @app.websocket("/ws/video")
 async def video_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -56,3 +62,9 @@ async def video_endpoint(websocket: WebSocket):
 
 
 app.mount("/", StaticFiles(directory="src/serving/frontend", html=True), name="static")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

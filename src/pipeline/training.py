@@ -75,6 +75,7 @@ class CloudTrainer:
                     "degrees": settings.AUG_DEGREES,
                     "hsv_v": settings.AUG_HSV_V,
                     "mosaic": settings.AUG_MOSAIC,
+                    "mixup": settings.AUG_MIXUP,
                     "fliplr": settings.AUG_FLIPLR,
                     "task": "detect",
                     "mode": "train",
@@ -121,6 +122,7 @@ class CloudTrainer:
                     "degrees": settings.AUG_DEGREES,
                     "hsv_v": settings.AUG_HSV_V,
                     "mosaic": settings.AUG_MOSAIC,
+                    "mixup": settings.AUG_MIXUP,
                     "fliplr": settings.AUG_FLIPLR,
                 },
             }

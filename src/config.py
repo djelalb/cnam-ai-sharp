@@ -21,17 +21,18 @@ class Settings(BaseSettings):
     ULTRALYTICS_PROJECT: str = "ai-sharp"
     ULTRALYTICS_EXP_NAME: str = "SHARP_Training"
 
-    # --- Hyperparamètres d'IA (V2 Optimisée) ---
+    # --- Hyperparamètres d'IA (V3 Équilibrée) ---
     MODEL_VARIANT: str = "yolo11n.pt"
     EPOCHS: int = 200
     PATIENCE: int = 50
     IMG_SIZE: int = 640
     BATCH_SIZE: int = 16
 
-    # --- Augmentation de données (Recall & Robustness Boost) ---
-    AUG_DEGREES: float = 25.0  # Augmenté pour la flexibilité angulaire
-    AUG_HSV_V: float = 0.6  # Augmenté pour la résilience lumineuse
-    AUG_MOSAIC: float = 1.0  # Maximisé pour la détection multi-mains
+    # --- Augmentation de données (Balance Precision/Recall) ---
+    AUG_DEGREES: float = 15.0  # Réduit pour éviter les distorsions excessives
+    AUG_HSV_V: float = 0.6  # Conservé pour la résilience lumineuse
+    AUG_MOSAIC: float = 0.7  # Réduit pour laisser plus d'images entières
+    AUG_MIXUP: float = 0.1  # Ajouté pour gérer les chevauchements
     AUG_FLIPLR: float = 0.5  # Conservé pour la symétrie
 
     # Chemins locaux

@@ -21,12 +21,21 @@ class Settings(BaseSettings):
     ULTRALYTICS_PROJECT: str = "ai-sharp"
     ULTRALYTICS_EXP_NAME: str = "SHARP_Training"
 
-    # Hyperparamètres (Cloud)
+    # --- Hyperparamètres d'IA (Single Source of Truth) ---
+    MODEL_VARIANT: str = "yolo11n.pt"
     EPOCHS: int = 150
     PATIENCE: int = 30
-    MODEL_VARIANT: str = "yolo11n.pt"
+    IMG_SIZE: int = 640
+    BATCH_SIZE: int = 16
+
+    # --- Augmentation de données (Robustesse) ---
+    AUG_DEGREES: float = 15.0  # Rotation
+    AUG_HSV_V: float = 0.4  # Luminosité
+    AUG_MOSAIC: float = 0.5  # Multi-mains
+    AUG_FLIPLR: float = 0.5  # Miroir horizontal
 
     # Chemins locaux
+
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
     DATA_DIR: Path = BASE_DIR / "data"
     RAW_DATA_DIR: Path = DATA_DIR / "raw"

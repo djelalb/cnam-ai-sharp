@@ -2,45 +2,44 @@
 
 [![CI Pipeline](https://github.com/djelalb/cnam-ai-sharp/actions/workflows/ci.yml/badge.svg)](https://github.com/djelalb/cnam-ai-sharp/actions)
 
-## 📋 Comprendre le projet
-Le projet est séparé en deux mondes distincts :
-1.  **Le Monde Local (Développement)** : Pour entraîner l'IA (via le Cloud Ultralytics) et tester le code.
-2.  **Le Monde Docker (Production/Serving)** : Pour livrer l'application finale. **Docker remplace Python** : il contient son propre Python, ses propres dépendances et le modèle.
+## 📝 Présentation
+SHARP est une solution de vision par ordinateur dédiée à la **détection de mains en temps réel**. S'appuyant sur l'architecture **YOLO11**, ce projet propose une stack complète allant de la préparation des données à l'inférence haute performance.
 
----
+L'objectif est de fournir un système capable de traiter des flux vidéo en direct via WebSocket, garantissant une latence minimale et une précision optimale pour des applications interactives.
 
-## 🛠️ Option A : Développement Local (Entraînement)
-Utilisez cette option pour lancer la pipeline ML et générer/optimiser le modèle.
+## 🚀 Démarrage Rapide
 
-```bash
-# 1. Setup
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-
-# 2. Config (Créer .env.local avec votre API KEY)
-
-# 3. Lancer la pipeline Cloud Training
-python -m src.main all
-```
-
----
-
-## 🚀 Option B : Déploiement Docker (Recommandé pour la Démo)
-Utilisez cette option pour lancer l'interface Web finale. **Aucune installation de Python n'est requise sur votre machine**, Docker s'occupe de tout.
+### Déploiement via Docker (Recommandé)
+Le moyen le plus simple de tester l'application est d'utiliser Docker. Cela lance l'API de serving et l'interface utilisateur sans nécessiter d'installation locale de Python.
 
 ```bash
-# Lancer l'application complète
 docker-compose up --build
 ```
-Accès : **`http://localhost:8000`**
+Accès à l'interface : **[http://localhost:8000](http://localhost:8000)**
 
----
+### Installation Locale (Développement)
+Pour entraîner le modèle ou contribuer au code :
 
-## 🏗️ Principes d'Architecture
-- **SOLID** : Inférence (`inference.py`) isolée du serveur (`main.py`).
-- **Type-Safe** : Validation stricte via Pydantic.
-- **Propre** : Docker Multi-stage pour une image légère et sécurisée.
+1. **Environnement** :
+   ```bash
+   python -m venv venv && source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **Configuration** : Créer un fichier `.env.local` avec vos variables d'environnement (notamment `ULTRALYTICS_API_KEY`).
 
-## 🧪 Maintenance
-- **Tests** : `pytest tests/`
-- **Qualité** : `ruff check .`
+## ⚙️ Utilisation de la Pipeline ML
+Le projet inclut un orchestrateur pour gérer les différentes étapes du cycle de vie du modèle :
+
+```bash
+# Lancer l'intégralité de la pipeline (extraction, préparation, training, validation)
+python -m src.main all
+
+# Lancer une étape spécifique
+python -m src.main [extraction|preparation|training|validation]
+```
+
+## 🧪 Qualité et Maintenance
+Le projet respecte les standards de développement modernes pour garantir la fiabilité du code.
+
+- **Tests unitaires** : `pytest tests/`
+- **Linting & Formatage** : `ruff check .`

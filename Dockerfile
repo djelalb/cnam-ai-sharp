@@ -3,7 +3,11 @@ FROM python:3.12-slim as builder
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Utilisation du cache pour accélérer les installations (BuildKit)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip && \
+    pip install --user -r requirements.txt
 
 # Final stage
 FROM python:3.12-slim

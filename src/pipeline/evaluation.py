@@ -1,13 +1,13 @@
 """
-Étape 5 — ÉVALUATION sur le jeu de test (déléguée, repliable en local).
+Étape 5 — ÉVALUATION (locale si dataset présent, sinon déléguée).
 
-L'entraînement cloud évalue automatiquement le meilleur modèle sur le split
-*test* ; les métriques (mAP50, mAP50-95, précision, rappel) sont conservées
-dans l'experiment tracking Ultralytics.
+Rejoue l'évaluation officielle via ``model.val()`` — la méthode exigée par le
+sujet — sur le split défini par ``settings.EVAL_SPLIT``. La plateforme
+n'exporte que train/val : l'évaluation se fait donc sur le split de validation.
 
-Si un dataset est disponible localement (``DATA_CONFIG`` présent), l'étape
-rejoue l'évaluation officielle via ``model.val(split="test")`` — la méthode
-exigée par le sujet — afin de pouvoir reproduire les métriques hors ligne.
+Si aucun dataset n'a été préparé localement, l'étape rappelle que
+l'entraînement cloud évalue automatiquement le modèle et conserve les
+métriques dans l'experiment tracking.
 """
 
 import logging
@@ -28,9 +28,13 @@ def run() -> None:
 
     from ultralytics import YOLO
 
-    logger.info("Évaluation locale sur le split test (%s)...", settings.DATA_CONFIG)
+    logger.info(
+        "Évaluation locale sur le split '%s' (%s)...",
+        settings.EVAL_SPLIT,
+        settings.DATA_CONFIG,
+    )
     metrics = YOLO(settings.MODEL_PATH).val(
-        data=str(settings.DATA_CONFIG), split="test"
+        data=str(settings.DATA_CONFIG), split=settings.EVAL_SPLIT
     )
     logger.info(
         "mAP50=%.3f | mAP50-95=%.3f | précision=%.3f | rappel=%.3f",

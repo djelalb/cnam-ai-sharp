@@ -120,7 +120,7 @@
             socket.onclose = () => {
                 statusDot.className = "w-3 h-3 bg-red-500 rounded-full animate-pulse";
                 statusText.innerText = "Déconnecté";
-                setTimeout(connect, 2000); // Reconnexion auto
+                setTimeout(connect, 2000);
             };
 
             socket.onmessage = (event) => {
@@ -129,12 +129,10 @@
                 counterEl.innerText = data.total_fingers;
                 updateList(data.boxes);
 
-                // Calcul FPS
                 const now = Date.now();
                 fpsEl.innerText = Math.round(1000 / (now - lastFrameTime));
                 lastFrameTime = now;
 
-                // Envoyer la prochaine frame
                 requestAnimationFrame(sendFrame);
             };
         }
@@ -142,11 +140,8 @@
         // 3. Capture et Envoi
         function sendFrame() {
             if (socket && socket.readyState === WebSocket.OPEN) {
-                // On capture en haute qualité
                 hiddenCtx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-                // Augmentation de la qualité pour aider la détection des doigts fins
-                const base64Image = hiddenCanvas.toDataURL('image/jpeg', 0.8);
-                socket.send(base64Image);
+                socket.send(hiddenCanvas.toDataURL('image/jpeg', 0.8));
             }
         }
 
@@ -158,20 +153,14 @@
 
             boxes.forEach(box => {
                 const [x1, y1, x2, y2] = box.bbox;
-                const width = x2 - x1;
-                const height = y2 - y1;
 
-                // Rectangle
                 ctx.strokeStyle = "#3b82f6";
-                ctx.strokeRect(x1, y1, width, height);
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
-                // Label Background
-                ctx.fillStyle = "#3b82f6";
                 const text = `${box.label} (${box.confidence})`;
-                const textWidth = ctx.measureText(text).width;
-                ctx.fillRect(x1, y1 - 25, textWidth + 10, 25);
+                ctx.fillStyle = "#3b82f6";
+                ctx.fillRect(x1, y1 - 25, ctx.measureText(text).width + 10, 25);
 
-                // Texte
                 ctx.fillStyle = "white";
                 ctx.fillText(text, x1 + 5, y1 - 7);
             });

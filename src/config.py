@@ -21,13 +21,13 @@ class Settings(BaseSettings):
 
     # AI Model
     MODEL_PATH: Path = Path("exp-14.pt")
-    MODEL_VARIANT: str = "yolo11n.pt"
-    IMG_SIZE: int = 640  # Aligné sur la frame capturée (640x480)
-    CONFIDENCE: float = 0.4  # Un peu plus sensible
-    IOU_THRESHOLD: float = 0.45  # Supprime les boîtes en double (NMS)
-    MAX_DET: int = 4  # Au plus 4 mains détectées par frame
+    MODEL_VARIANT: str = "yolo11m.pt"
+    IMG_SIZE: int = 640  # aligné sur la frame capturée (640x480)
+    CONFIDENCE: float = 0.4
+    IOU_THRESHOLD: float = 0.45
+    MAX_DET: int = 4  # au plus 4 mains par frame
 
-    # Hyperparameters V3 (Balanced)
+    # Hyperparamètres d'entraînement (augmentations incluses)
     EPOCHS: int = Field(200, validation_alias="ULTRALYTICS_EPOCHS")
     PATIENCE: int = Field(50, validation_alias="ULTRALYTICS_PATIENCE")
     AUG_DEGREES: float = 15.0
@@ -42,7 +42,9 @@ class Settings(BaseSettings):
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
     PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
     DATASET_ID_FILE: Path = RAW_DATA_DIR / "dataset_hub_id.txt"
+    DATASET_EXPORT: Path = RAW_DATA_DIR / "hands.ndjson"  # manifeste exporté
     DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
+    EVAL_SPLIT: str = "val"  # split d'évaluation (la plateforme exporte train/val)
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore"

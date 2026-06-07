@@ -1,10 +1,8 @@
-"""
-Service d'inférence découplé du transport (API/WS).
-"""
+"""Service d'inférence, découplé du transport (API/WS)."""
 
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 from ultralytics import YOLO
@@ -15,37 +13,28 @@ logger = logging.getLogger(__name__)
 
 
 def _finger_count(class_name: str) -> int:
-    """Dérive le nombre de doigts depuis le nom de classe.
-
-    Robuste aux deux conventions de nommage rencontrées
-    (``"3"`` comme ``"3_doigts"``/``"3_fingers"``) : on extrait
-    le premier entier présent dans le nom plutôt que de se reposer
-    sur l'ordre des indices de classes.
-    """
+    """Extrait le nombre de doigts du nom de classe (``"3"`` ou ``"3_doigts"``)."""
     match = re.search(r"\d+", class_name)
     return int(match.group()) if match else 0
 
 
 class InferenceService:
-    """Gère le cycle de vie et l'exécution du modèle YOLO."""
+    """Charge le modèle YOLO et produit les détections d'une frame."""
 
-    def __init__(self):
-        self.model: YOLO | None = None
-        self._load_model()
+    def __init__(self, model: YOLO | None = None) -> None:
+        self.model = model if model is not None else self._load_model()
 
-    def _load_model(self) -> None:
-        """Charge le modèle en mémoire."""
-        try:
-            if not settings.MODEL_PATH.exists():
-                logger.warning(f"Modèle non trouvé à {settings.MODEL_PATH}")
-                return
-            self.model = YOLO(settings.MODEL_PATH)
-            logger.info(f"Modèle YOLO chargé depuis {settings.MODEL_PATH}")
-        except Exception as e:
-            logger.error(f"Erreur chargement modèle : {e}")
+    @staticmethod
+    def _load_model() -> YOLO | None:
+        """Charge le modèle depuis le disque, ou ``None`` s'il est introuvable."""
+        if not settings.MODEL_PATH.exists():
+            logger.warning("Modèle introuvable à %s", settings.MODEL_PATH)
+            return None
+        logger.info("Modèle YOLO chargé depuis %s", settings.MODEL_PATH)
+        return YOLO(settings.MODEL_PATH)
 
-    def predict(self, frame: np.ndarray) -> Dict[str, Any]:
-        """Exécute l'inférence avec les paramètres de haute précision."""
+    def predict(self, frame: np.ndarray) -> dict[str, Any]:
+        """Détecte les mains et agrège le nombre total de doigts visibles."""
         if self.model is None:
             return {"boxes": [], "total_fingers": 0}
 
@@ -57,20 +46,18 @@ class InferenceService:
             max_det=settings.MAX_DET,
             verbose=False,
         )
+
         detections = []
         total_fingers = 0
-
-        for r in results:
-            for box in r.boxes:
+        for result in results:
+            for box in result.boxes:
                 cls = int(box.cls[0])
-                conf = float(box.conf[0])
-                class_name = r.names[cls]
-                fingers = _finger_count(class_name)
+                fingers = _finger_count(result.names[cls])
                 total_fingers += fingers
                 detections.append(
                     {
                         "bbox": box.xyxy[0].tolist(),
-                        "confidence": round(conf, 2),
+                        "confidence": round(float(box.conf[0]), 2),
                         "class": cls,
                         "fingers": fingers,
                         "label": f"{fingers} fingers",

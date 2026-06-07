@@ -1,9 +1,8 @@
 """
 Orchestrateur de la pipeline ML du projet SHARP.
 
-Déroule les 6 étapes du cycle ML (cf. ``src.pipeline``). Certaines étapes sont déléguées
-à la plateforme Ultralytics etsont tracées plutôt qu'exécutées localement, afin
-de rendre le pipeline lisible de bout en bout.
+Déroule les 6 étapes du cycle ML (cf. ``src.pipeline``) et journalise, pour
+chacune, son numéro et son statut (local, cloud ou manuel).
 """
 
 import argparse

@@ -32,11 +32,13 @@ ENV/
 
 # ML specific
 data/
+runs/
 models/
 *.log
 .DS_Store
 *.pt
 .env
+.env.local
 
 # Tools
 .ruff_cache/

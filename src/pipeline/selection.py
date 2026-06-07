@@ -4,7 +4,7 @@
 Dernière étape du cycle ML : décider quel run promouvoir en production.
 Cette validation repose sur l'analyse comparative de l'experiment tracking
 (cf. ``docs/training_strategy.md``) et relève d'un choix humain, non
-automatisable. Le run ``exp-17`` a été retenu et figé dans ``exp-17.pt``.
+automatisable. Le run ``ai-sharp-exp-2`` a été retenu et figé.
 """
 
 import logging

@@ -28,10 +28,10 @@ ENV PATH=/root/.local/bin:$PATH
 
 # Copy app code + modèle de production (depuis models/)
 COPY src/ /app/src/
-COPY models/exp-17.pt /app/models/exp-17.pt
+COPY models/ai-sharp-exp-2.pt /app/models/ai-sharp-exp-2.pt
 
 # Configuration
-ENV MODEL_PATH=/app/models/exp-17.pt
+ENV MODEL_PATH=/app/models/ai-sharp-exp-2.pt
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000

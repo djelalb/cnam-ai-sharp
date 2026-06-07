@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ULTRALYTICS_USERNAME: str = "djelal-boudji"
     ULTRALYTICS_PROJECT: str = "ai-sharp"
     ULTRALYTICS_DATASET: str = "hands"
-    ULTRALYTICS_EXP_NAME: str = "ai-sharp-exp"
+    ULTRALYTICS_EXP_NAME: str = "ai-sharp-exp-2"
 
     # Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
 
     # AI Model (modèle de production : serving + sélection)
-    MODEL_PATH: Path = MODELS_DIR / "exp-17.pt"
-    MODEL_VARIANT: str = "yolo11m.pt"
+    MODEL_PATH: Path = MODELS_DIR / "ai-sharp-exp-2.pt"
+    MODEL_VARIANT: str = "yolo11s.pt"
     IMG_SIZE: int = 640  # aligné sur la frame capturée (640x480)
     CONFIDENCE: float = 0.4
     IOU_THRESHOLD: float = 0.45

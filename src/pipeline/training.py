@@ -1,5 +1,5 @@
 """
-Étape 4 — TRAINING (local : pilotage / cloud : exécution).
+Étape 4 — TRAINING (piloté en local, exécuté sur le cloud).
 
 L'entraînement s'exécute sur les GPU d'Ultralytics. Ce module pilote ce job
 distant via l'API REST : création de l'entité modèle (hyper-paramètres et
@@ -13,6 +13,7 @@ import sys
 import requests
 
 from src.config import settings
+from src.pipeline import hub
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +21,10 @@ logger = logging.getLogger(__name__)
 class CloudTrainer:
     """Pilote un entraînement YOLO sur l'infrastructure cloud d'Ultralytics."""
 
-    def __init__(self) -> None:
-        self.headers = {
-            "Authorization": f"Bearer {settings.ULTRALYTICS_API_KEY}",
-            "Content-Type": "application/json",
-        }
-        self.api_url = "https://platform.ultralytics.com/api"
-
     def train(self) -> None:
         """Crée l'entité modèle puis démarre le compute cloud."""
         dataset_id = self._read_dataset_id()
-        project_id = self._resolve_project_id()
+        project_id = hub.resolve_project_id()
 
         model_id = self._create_model(dataset_id, project_id)
         logger.info("Modèle créé avec l'ID : %s", model_id)
@@ -44,25 +38,8 @@ class CloudTrainer:
             raise FileNotFoundError("ID dataset manquant. Lancez l'extraction.")
         return settings.DATASET_ID_FILE.read_text().strip()
 
-    def _resolve_project_id(self) -> str:
-        """Résout l'ID du projet Ultralytics cible."""
-        response = requests.get(f"{self.api_url}/projects", headers=self.headers)
-        response.raise_for_status()
-
-        project = next(
-            (
-                p
-                for p in response.json().get("projects", [])
-                if p.get("slug") == settings.ULTRALYTICS_PROJECT
-                and p.get("username") == settings.ULTRALYTICS_USERNAME
-            ),
-            None,
-        )
-        if not project:
-            raise ValueError(f"Projet {settings.ULTRALYTICS_PROJECT} introuvable.")
-        return project.get("_id") or project.get("id")
-
-    def _train_args(self) -> dict:
+    @staticmethod
+    def _train_args() -> dict:
         """Hyper-paramètres et augmentations partagés (source : config)."""
         return {
             "model": settings.MODEL_VARIANT,
@@ -88,7 +65,7 @@ class CloudTrainer:
             "cfg": {**self._train_args(), "task": "detect", "mode": "train"},
         }
         response = requests.post(
-            f"{self.api_url}/models", headers=self.headers, json=payload
+            f"{hub.BASE_URL}/models", headers=hub.headers(), json=payload, timeout=60
         )
         response.raise_for_status()
 
@@ -112,7 +89,10 @@ class CloudTrainer:
             "trainArgs": {**self._train_args(), "data": dataset_uri},
         }
         response = requests.post(
-            f"{self.api_url}/training/start", headers=self.headers, json=payload
+            f"{hub.BASE_URL}/training/start",
+            headers=hub.headers(),
+            json=payload,
+            timeout=60,
         )
 
         if response.status_code in (200, 201, 202):

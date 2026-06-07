@@ -24,7 +24,14 @@ def main() -> None:
         choices=[stage.key for stage in PIPELINE] + ["all"],
         help="Étape de la pipeline à exécuter ('all' pour tout dérouler)",
     )
+    parser.add_argument(
+        "--model",
+        help="Nom du run à évaluer (ex: exp-14) ; demandé sinon",
+    )
     args = parser.parse_args()
+
+    # Arguments propres à certaines étapes (l'évaluation a besoin du run cible).
+    stage_args = {"evaluation": {"model_name": args.model}}
 
     try:
         for index, stage in enumerate(PIPELINE, start=1):
@@ -37,7 +44,7 @@ def main() -> None:
                 stage.name.upper(),
                 stage.kind.value,
             )
-            stage.run()
+            stage.run(**stage_args.get(stage.key, {}))
     except KeyboardInterrupt:
         logger.info("Arrêt par l'utilisateur.")
         sys.exit(0)

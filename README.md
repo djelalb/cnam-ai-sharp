@@ -18,15 +18,17 @@ src/
 ├── config.py              # configuration centralisée (Pydantic Settings)
 ├── main.py                # orchestrateur de la pipeline ML (argparse)
 ├── pipeline/              # une étape ML par module (SRP)
+│   ├── hub.py             # client REST Ultralytics (projet, poids des runs)
 │   ├── extraction.py      # API HUB → manifeste NDJSON
-│   ├── validation.py      # intégrité images + cohérence labels
+│   ├── validation.py      # cohérence des annotations du manifeste
 │   ├── preparation.py     # NDJSON → arborescence YOLO + config.yaml
 │   ├── training.py        # pilotage du job d'entraînement GPU cloud
-│   ├── evaluation.py      # model.val() sur le split de validation
+│   ├── evaluation.py      # télécharge le run choisi → model.val()
 │   └── selection.py       # choix manuel du modèle retenu
 └── serving/
     ├── api/               # FastAPI : inférence (inference.py) + WebSocket (main.py)
     └── frontend/          # dashboard webcam (HTML/Canvas/Tailwind)
+models/                    # tous les poids .pt (modèle de prod + runs téléchargés)
 tests/                     # tests unitaires (pytest)
 ```
 
@@ -61,8 +63,8 @@ localement au format YOLO. Chaque étape est un module dédié.
 | 2 | Validation | local | cohérence des annotations du manifeste (classes, coords ∈ [0,1]) |
 | 3 | Préparation | local | NDJSON → images + labels YOLO + `config.yaml` |
 | 4 | Training | local → cloud | déclenche le job d'entraînement GPU sur Ultralytics |
-| 5 | Évaluation | local | `model.val()` sur le split de validation |
-| 6 | Sélection | manuel | run retenu après analyse de l'experiment tracking (`exp-14.pt`) |
+| 5 | Évaluation | local | télécharge les poids du run choisi → `model.val()` (split val) |
+| 6 | Sélection | manuel | run retenu après analyse de l'experiment tracking (`exp-17.pt`) |
 
 ```bash
 # Dérouler toute la pipeline
@@ -70,7 +72,15 @@ python -m src.main all
 
 # Ou une étape précise
 python -m src.main [extraction|validation|preparation|training|evaluation|selection]
+
+# Évaluer un run précis sans saisie interactive (nom visible dans l'URL du run)
+python -m src.main evaluation --model exp-17
 ```
+
+> 🔎 L'**évaluation** porte sur le modèle *réellement entraîné* : le nom du run est
+> demandé (ou passé via `--model`), ses poids `.pt` sont téléchargés depuis la
+> plateforme, puis évalués. Le modèle de production (`exp-17.pt`) reste réservé au
+> serving et à l'étape de sélection.
 
 > ⏳ La **préparation** télécharge les images depuis des URLs CDN signées (durée de
 > vie limitée) : si elles ont expiré, relancer `extraction` pour régénérer l'export.
@@ -81,7 +91,8 @@ python -m src.main [extraction|validation|preparation|training|evaluation|select
 
 API **FastAPI** : le frontend capture la webcam, envoie chaque frame via **WebSocket**,
 le backend exécute YOLO et renvoie les boîtes + la somme des doigts, superposées sur
-le flux. Le modèle (`exp-14.pt`) est chargé au démarrage du conteneur.
+le flux. Tous les poids vivent dans `models/` ; le modèle de production
+(`models/exp-17.pt`, défini par `MODEL_PATH`) est chargé au démarrage du conteneur.
 
 ```bash
 # Docker (recommandé) — charge le modèle et expose le dashboard
@@ -92,6 +103,15 @@ python -m src.serving.api.main
 ```
 
 Interface : **http://localhost:8000** — santé : `curl http://localhost:8000/health`
+
+> 📦 Les poids `.pt` ne sont pas versionnés (gitignorés, fichiers lourds). Avant de
+> lancer l'app ou de builder l'image Docker, s'assurer que le modèle de production
+> est présent dans `models/` :
+> ```bash
+> python -m src.main evaluation --model exp-17   # télécharge models/exp-17.pt
+> ```
+> (ou copier le fichier directement dans `models/`). Pour servir un autre modèle,
+> placer son `.pt` dans `models/` et mettre à jour `MODEL_PATH` dans `config.py`.
 
 ## 🧪 Qualité
 

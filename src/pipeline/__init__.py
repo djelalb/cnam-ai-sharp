@@ -17,7 +17,7 @@ Statut de chaque étape :
 2   Validation   local       cohérence des annotations du manifeste
 3   Préparation  local       manifeste NDJSON → arborescence YOLO
 4   Training     cloud       déclenche le job d'entraînement GPU cloud
-5   Évaluation   local       model.val() sur le split de validation
+5   Évaluation   local       télécharge le run choisi → model.val()
 6   Sélection    manuel      run retenu après analyse du tracking
 ==  ===========  ==========  ==========================================
 """
@@ -51,7 +51,7 @@ class Stage:
     key: str
     name: str
     kind: StageKind
-    run: Callable[[], None]
+    run: Callable[..., None]
 
 
 #: Définition ordonnée des 6 étapes (source de vérité de l'orchestrateur).

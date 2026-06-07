@@ -1,0 +1,17 @@
+# Contexte de build minimal : on n'embarque que le code et le modèle de prod
+venv/
+data/
+runs/
+docs/
+tests/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+.env.local
+
+# Modèles : seul le modèle de production est copié dans l'image
+models/*
+!models/exp-17.pt

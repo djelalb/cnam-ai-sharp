@@ -1,39 +1,47 @@
 """
-Étape 5 — ÉVALUATION (locale si dataset présent, sinon déléguée).
+Étape 5 — ÉVALUATION (locale, sur le run entraîné).
 
-Rejoue l'évaluation officielle via ``model.val()`` — la méthode exigée par le
-sujet — sur le split défini par ``settings.EVAL_SPLIT``. La plateforme
-n'exporte que train/val : l'évaluation se fait donc sur le split de validation.
-
-Si aucun dataset n'a été préparé localement, l'étape rappelle que
-l'entraînement cloud évalue automatiquement le modèle et conserve les
-métriques dans l'experiment tracking.
+Télécharge les poids du run à évaluer (nom passé en argument, ex: ``exp-14``,
+sinon demandé de façon interactive) puis rejoue l'évaluation officielle via
+``model.val()`` — la méthode exigée par le sujet — sur le split de validation.
+La plateforme n'exporte que train/val : l'évaluation se fait donc sur ``val``.
 """
 
 import logging
+import sys
 
 from src.config import settings
+from src.pipeline import hub
 
 logger = logging.getLogger(__name__)
 
 
-def run() -> None:
-    """Évalue localement si possible, sinon trace la délégation au cloud."""
-    if not (settings.MODEL_PATH.exists() and settings.DATA_CONFIG.exists()):
-        logger.info(
-            "Évaluation déléguée : model.val() exécutée sur le split test lors "
-            "de l'entraînement cloud ; métriques dans l'experiment tracking."
-        )
+def run(model_name: str | None = None) -> None:
+    """Évalue le run ``model_name`` (demandé si absent) sur le split de validation."""
+    if not settings.DATA_CONFIG.exists():
+        logger.info("Évaluation ignorée : dataset non préparé (lancez 'preparation').")
         return
+
+    name = model_name or _prompt_model_name()
+    if not name:
+        logger.info("Aucun run fourni : évaluation annulée.")
+        return
+
+    try:
+        _evaluate(name)
+    except Exception as exc:
+        logger.error("Échec de l'évaluation : %s", exc)
+        sys.exit(1)
+
+
+def _evaluate(name: str) -> None:
+    """Télécharge les poids du run et journalise les métriques de ``val``."""
+    weights = hub.download_model(name, settings.MODELS_DIR)
 
     from ultralytics import YOLO
 
-    logger.info(
-        "Évaluation locale sur le split '%s' (%s)...",
-        settings.EVAL_SPLIT,
-        settings.DATA_CONFIG,
-    )
-    metrics = YOLO(settings.MODEL_PATH).val(
+    logger.info("Évaluation de %s sur le split '%s'...", name, settings.EVAL_SPLIT)
+    metrics = YOLO(weights).val(
         data=str(settings.DATA_CONFIG), split=settings.EVAL_SPLIT
     )
     logger.info(
@@ -43,3 +51,11 @@ def run() -> None:
         metrics.box.mp,
         metrics.box.mr,
     )
+
+
+def _prompt_model_name() -> str:
+    """Demande interactivement le nom du run (ex: ``exp-14``)."""
+    try:
+        return input("Nom du run à évaluer (ex: exp-14) : ").strip()
+    except EOFError:
+        return ""

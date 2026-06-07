@@ -19,13 +19,24 @@ class Settings(BaseSettings):
     ULTRALYTICS_DATASET: str = "hands"
     ULTRALYTICS_EXP_NAME: str = "ai-sharp-exp"
 
-    # AI Model
-    MODEL_PATH: Path = Path("exp-14.pt")
+    # Paths
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent
+    DATA_DIR: Path = BASE_DIR / "data"
+    RAW_DATA_DIR: Path = DATA_DIR / "raw"
+    PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
+    MODELS_DIR: Path = BASE_DIR / "models"  # tous les poids .pt vivent ici
+    DATASET_ID_FILE: Path = RAW_DATA_DIR / "dataset_hub_id.txt"
+    DATASET_EXPORT: Path = RAW_DATA_DIR / "hands.ndjson"  # manifeste exporté
+    DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
+
+    # AI Model (modèle de production : serving + sélection)
+    MODEL_PATH: Path = MODELS_DIR / "exp-17.pt"
     MODEL_VARIANT: str = "yolo11m.pt"
     IMG_SIZE: int = 640  # aligné sur la frame capturée (640x480)
     CONFIDENCE: float = 0.4
     IOU_THRESHOLD: float = 0.45
     MAX_DET: int = 4  # au plus 4 mains par frame
+    EVAL_SPLIT: str = "val"  # split d'évaluation (la plateforme exporte train/val)
 
     # Hyperparamètres d'entraînement (augmentations incluses)
     EPOCHS: int = Field(200, validation_alias="ULTRALYTICS_EPOCHS")
@@ -35,16 +46,6 @@ class Settings(BaseSettings):
     AUG_MOSAIC: float = 0.7
     AUG_MIXUP: float = 0.1
     AUG_FLIPLR: float = 0.5
-
-    # Paths
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent
-    DATA_DIR: Path = BASE_DIR / "data"
-    RAW_DATA_DIR: Path = DATA_DIR / "raw"
-    PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
-    DATASET_ID_FILE: Path = RAW_DATA_DIR / "dataset_hub_id.txt"
-    DATASET_EXPORT: Path = RAW_DATA_DIR / "hands.ndjson"  # manifeste exporté
-    DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
-    EVAL_SPLIT: str = "val"  # split d'évaluation (la plateforme exporte train/val)
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore"

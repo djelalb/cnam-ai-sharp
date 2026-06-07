@@ -26,12 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
-# Copy app code
+# Copy app code + modèle de production (depuis models/)
 COPY src/ /app/src/
-COPY exp-14.pt /app/exp-14.pt
+COPY models/exp-17.pt /app/models/exp-17.pt
 
 # Configuration
-ENV MODEL_PATH=/app/exp-14.pt
+ENV MODEL_PATH=/app/models/exp-17.pt
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000

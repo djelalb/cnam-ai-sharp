@@ -37,7 +37,6 @@ models/
 *.log
 .DS_Store
 *.pt
-.env
 .env.local
 
 # Tools

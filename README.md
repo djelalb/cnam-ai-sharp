@@ -27,15 +27,36 @@ Pour entraîner le modèle ou contribuer au code :
    ```
 2. **Configuration** : Créer un fichier `.env.local` avec vos variables d'environnement (notamment `ULTRALYTICS_API_KEY`).
 
-## ⚙️ Utilisation de la Pipeline ML
-Le projet inclut un orchestrateur pour gérer les différentes étapes du cycle de vie du modèle :
+## ⚙️ Utilisation
+
+### Application Web (Serving)
+Pour lancer l'interface de détection en temps réel localement :
+```bash
+python -m src.serving.api.main
+```
+Accès : **[http://localhost:8000](http://localhost:8000)**
+
+### Pipeline ML
+Le cycle de vie ML comporte **6 étapes**. Le sujet autorisant l'usage de la
+plateforme Ultralytics, la gestion du dataset et l'entraînement GPU y sont
+réalisés : les étapes correspondantes sont donc **déléguées** (tracées plutôt
+qu'exécutées localement). Chaque étape reste matérialisée par un module dédié.
+
+| # | Étape | Statut | Réalisation |
+|---|-------|--------|-------------|
+| 1 | Extraction | local | résout l'ID du dataset hébergé |
+| 2 | Validation | délégué | intégrité/cohérence des annotations (outil d'annotation) |
+| 3 | Préparation | délégué | format YOLO + split 60/20/20 (seed 42) sur la plateforme |
+| 4 | Training | local | déclenche le job d'entraînement GPU cloud |
+| 5 | Évaluation | délégué | `model.val()` auto sur le split test → experiment tracking |
+| 6 | Sélection | manuel | run retenu après analyse du tracking (`exp-14.pt`) |
 
 ```bash
-# Lancer l'intégralité de la pipeline (extraction, préparation, training, validation)
+# Dérouler l'intégralité de la pipeline (les 6 étapes)
 python -m src.main all
 
 # Lancer une étape spécifique
-python -m src.main [extraction|preparation|training|validation]
+python -m src.main [extraction|validation|preparation|training|evaluation|selection]
 ```
 
 ## 🧪 Qualité et Maintenance

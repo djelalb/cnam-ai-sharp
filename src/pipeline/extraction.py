@@ -1,6 +1,9 @@
 """
-Module d'extraction de données pour le projet SHARP.
-Résout le slug Ultralytics HUB en datasetID.
+Étape 1 — EXTRACTION (locale).
+
+Le dataset est hébergé sur Ultralytics HUB. Cette étape résout le *slug*
+lisible (``username/dataset``) en identifiant technique, puis le persiste
+pour les étapes suivantes (l'entraînement en a besoin).
 """
 
 import logging
@@ -10,61 +13,57 @@ import requests
 
 from src.config import settings
 
-# Configuration du logging centralisé
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 
 class DatasetResolver:
-    """Résolveur de slugs Ultralytics."""
+    """Résout et persiste l'identifiant du dataset Ultralytics HUB."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.headers = {"Authorization": f"Bearer {settings.ULTRALYTICS_API_KEY}"}
         self.api_url = "https://platform.ultralytics.com/api/datasets"
 
     def resolve(self) -> str:
-        """Résout l'ID du dataset depuis la plateforme."""
-        try:
-            target = f"{settings.ULTRALYTICS_USERNAME}/{settings.ULTRALYTICS_DATASET}"
-            logger.info(f"Résolution de {target}...")
-            response = requests.get(self.api_url, headers=self.headers)
-            response.raise_for_status()
+        """Retourne l'ID du dataset et l'écrit dans ``DATASET_ID_FILE``."""
+        target = f"{settings.ULTRALYTICS_USERNAME}/{settings.ULTRALYTICS_DATASET}"
+        logger.info("Résolution de %s...", target)
 
-            datasets = response.json().get("datasets", [])
-            dataset = next(
-                (
-                    d
-                    for d in datasets
-                    if d.get("slug") == settings.ULTRALYTICS_DATASET
-                    and d.get("username") == settings.ULTRALYTICS_USERNAME
-                ),
-                None,
-            )
+        response = requests.get(self.api_url, headers=self.headers)
+        response.raise_for_status()
 
-            if not dataset:
-                raise ValueError("Dataset introuvable sur votre compte.")
+        dataset = self._find_dataset(response.json().get("datasets", []))
+        if not dataset:
+            raise ValueError("Dataset introuvable sur le compte Ultralytics.")
 
-            dataset_id = dataset.get("_id") or dataset.get("id")
+        dataset_id = dataset.get("_id") or dataset.get("id")
+        self._persist(dataset_id)
+        logger.info("ID résolu et sauvegardé : %s", dataset_id)
+        return dataset_id
 
-            # Sauvegarde persistante
-            settings.RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
-            with open(settings.DATASET_ID_FILE, "w") as f:
-                f.write(dataset_id)
+    @staticmethod
+    def _find_dataset(datasets: list[dict]) -> dict | None:
+        """Sélectionne le dataset correspondant au compte courant."""
+        return next(
+            (
+                d
+                for d in datasets
+                if d.get("slug") == settings.ULTRALYTICS_DATASET
+                and d.get("username") == settings.ULTRALYTICS_USERNAME
+            ),
+            None,
+        )
 
-            logger.info(f"ID résolu et sauvegardé : {dataset_id}")
-            return dataset_id
-
-        except Exception as e:
-            logger.error(f"Échec de l'extraction : {e}")
-            sys.exit(1)
-
-
-def run():
-    """Lance l'étape d'extraction."""
-    DatasetResolver().resolve()
+    @staticmethod
+    def _persist(dataset_id: str) -> None:
+        """Écrit l'ID résolu sur disque pour les étapes suivantes."""
+        settings.RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        settings.DATASET_ID_FILE.write_text(dataset_id)
 
 
-if __name__ == "__main__":
-    run()
+def run() -> None:
+    """Point d'entrée de l'étape d'extraction."""
+    try:
+        DatasetResolver().resolve()
+    except Exception as exc:
+        logger.error("Échec de l'extraction : %s", exc)
+        sys.exit(1)

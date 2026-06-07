@@ -1,6 +1,10 @@
 """
-Module d'entraînement Cloud pour le projet SHARP.
-Utilise l'API REST d'Ultralytics pour piloter les GPU distants.
+Étape 4 — TRAINING (local : pilotage / cloud : exécution).
+
+L'entraînement s'exécute sur les GPU d'Ultralytics. Ce module pilote ce job
+distant via l'API REST : création de l'entité modèle (hyper-paramètres et
+augmentations issus de la config) puis déclenchement du compute cloud.
+Le suivi des métriques (loss, mAP, etc.) se fait dans l'experiment tracking.
 """
 
 import logging
@@ -10,33 +14,45 @@ import requests
 
 from src.config import settings
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 
 class CloudTrainer:
-    """Orchestrateur d'entraînement Cloud."""
+    """Pilote un entraînement YOLO sur l'infrastructure cloud d'Ultralytics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.headers = {
             "Authorization": f"Bearer {settings.ULTRALYTICS_API_KEY}",
             "Content-Type": "application/json",
         }
         self.api_url = "https://platform.ultralytics.com/api"
 
-    def _get_project_id(self) -> str:
-        """Résout l'ID du projet."""
-        url = f"{self.api_url}/projects"
-        response = requests.get(url, headers=self.headers)
+    def train(self) -> None:
+        """Crée l'entité modèle puis démarre le compute cloud."""
+        dataset_id = self._read_dataset_id()
+        project_id = self._resolve_project_id()
+
+        model_id = self._create_model(dataset_id, project_id)
+        logger.info("Modèle créé avec l'ID : %s", model_id)
+
+        self._start_compute(model_id)
+
+    @staticmethod
+    def _read_dataset_id() -> str:
+        """Relit l'ID produit par l'étape d'extraction."""
+        if not settings.DATASET_ID_FILE.exists():
+            raise FileNotFoundError("ID dataset manquant. Lancez l'extraction.")
+        return settings.DATASET_ID_FILE.read_text().strip()
+
+    def _resolve_project_id(self) -> str:
+        """Résout l'ID du projet Ultralytics cible."""
+        response = requests.get(f"{self.api_url}/projects", headers=self.headers)
         response.raise_for_status()
 
-        projects = response.json().get("projects", [])
         project = next(
             (
                 p
-                for p in projects
+                for p in response.json().get("projects", [])
                 if p.get("slug") == settings.ULTRALYTICS_PROJECT
                 and p.get("username") == settings.ULTRALYTICS_USERNAME
             ),
@@ -44,117 +60,75 @@ class CloudTrainer:
         )
         if not project:
             raise ValueError(f"Projet {settings.ULTRALYTICS_PROJECT} introuvable.")
-
         return project.get("_id") or project.get("id")
 
-    def train(self):
-        """Lance le job d'entraînement Cloud."""
-        try:
-            # 1. Lecture de l'ID dataset
-            if not settings.DATASET_ID_FILE.exists():
-                raise FileNotFoundError("ID dataset manquant. Lancez l'extraction.")
+    def _train_args(self) -> dict:
+        """Hyper-paramètres et augmentations partagés (source : config)."""
+        return {
+            "model": settings.MODEL_VARIANT,
+            "epochs": settings.EPOCHS,
+            "patience": settings.PATIENCE,
+            "imgsz": settings.IMG_SIZE,
+            "degrees": settings.AUG_DEGREES,
+            "hsv_v": settings.AUG_HSV_V,
+            "mosaic": settings.AUG_MOSAIC,
+            "mixup": settings.AUG_MIXUP,
+            "fliplr": settings.AUG_FLIPLR,
+        }
 
-            with open(settings.DATASET_ID_FILE, "r") as f:
-                dataset_id = f.read().strip()
+    def _create_model(self, dataset_id: str, project_id: str) -> str:
+        """Crée l'entité modèle sur la plateforme et renvoie son ID."""
+        logger.info("Création de l'entité Modèle sur la plateforme...")
+        payload = {
+            "name": settings.ULTRALYTICS_EXP_NAME,
+            "datasetId": dataset_id,
+            "projectId": project_id,
+            "task": "detect",
+            "method": "cloud",
+            "cfg": {**self._train_args(), "task": "detect", "mode": "train"},
+        }
+        response = requests.post(
+            f"{self.api_url}/models", headers=self.headers, json=payload
+        )
+        response.raise_for_status()
 
-            # 2. Résolution projet
-            project_id = self._get_project_id()
+        data = response.json()
+        model_id = (
+            data.get("modelId") or data.get("id") or data.get("data", {}).get("id")
+        )
+        if not model_id:
+            raise ValueError(f"ID du modèle introuvable. Réponse : {data}")
+        return model_id
 
-            # 3. Payload
-            payload = {
-                "name": settings.ULTRALYTICS_EXP_NAME,
-                "datasetId": dataset_id,
-                "projectId": project_id,
-                "task": "detect",
-                "method": "cloud",
-                "cfg": {
-                    "model": settings.MODEL_VARIANT,
-                    "epochs": settings.EPOCHS,
-                    "patience": settings.PATIENCE,
-                    "imgsz": settings.IMG_SIZE,
-                    "degrees": settings.AUG_DEGREES,
-                    "hsv_v": settings.AUG_HSV_V,
-                    "mosaic": settings.AUG_MOSAIC,
-                    "mixup": settings.AUG_MIXUP,
-                    "fliplr": settings.AUG_FLIPLR,
-                    "task": "detect",
-                    "mode": "train",
-                },
-            }
+    def _start_compute(self, model_id: str) -> None:
+        """Déclenche l'entraînement GPU pour le modèle créé."""
+        logger.info("Démarrage de l'infrastructure Cloud (GPU)...")
+        dataset_uri = (
+            f"ul://{settings.ULTRALYTICS_USERNAME}/"
+            f"datasets/{settings.ULTRALYTICS_DATASET}"
+        )
+        payload = {
+            "modelId": model_id,
+            "trainArgs": {**self._train_args(), "data": dataset_uri},
+        }
+        response = requests.post(
+            f"{self.api_url}/training/start", headers=self.headers, json=payload
+        )
 
-            # 4. Étape 1 : Création de l'entité Modèle
-            logger.info("Étape 1 : Création de l'entité Modèle sur la plateforme...")
-            response = requests.post(
-                f"{self.api_url}/models", headers=self.headers, json=payload
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            # On extrait l'ID du modèle créé
-            model_id = (
-                data.get("modelId") or data.get("id") or data.get("data", {}).get("id")
-            )
-
-            if not model_id:
-                raise ValueError(
-                    f"Impossible de récupérer l'ID du modèle. Réponse: {data}"
-                )
-
-            logger.info(f"Modèle créé avec l'ID : {model_id}")
-
-            # 5. Étape 2 : Déclenchement du Compute Cloud
-            logger.info("Étape 2 : Démarrage de l'infrastructure Cloud (GPU)...")
-
-            # Format attendu par le Cloud : ul://{username}/datasets/{slug}
-            dataset_uri = (
-                f"ul://{settings.ULTRALYTICS_USERNAME}/"
-                f"datasets/{settings.ULTRALYTICS_DATASET}"
+        if response.status_code in (200, 201, 202):
+            logger.info("Entraînement Cloud démarré avec succès.")
+            logger.info("Suivi : https://platform.ultralytics.com/models/%s", model_id)
+        else:
+            raise RuntimeError(
+                f"Échec du Compute Cloud (HTTP {response.status_code}) : "
+                f"{response.text}"
             )
 
-            start_payload = {
-                "modelId": model_id,
-                "trainArgs": {
-                    "model": settings.MODEL_VARIANT,
-                    "data": dataset_uri,
-                    "epochs": settings.EPOCHS,
-                    "patience": settings.PATIENCE,
-                    "imgsz": settings.IMG_SIZE,
-                    "degrees": settings.AUG_DEGREES,
-                    "hsv_v": settings.AUG_HSV_V,
-                    "mosaic": settings.AUG_MOSAIC,
-                    "mixup": settings.AUG_MIXUP,
-                    "fliplr": settings.AUG_FLIPLR,
-                },
-            }
 
-            start_response = requests.post(
-                f"{self.api_url}/training/start",
-                headers=self.headers,
-                json=start_payload,
-            )
-
-            logger.info(f"Code HTTP Réponse (Start) : {start_response.status_code}")
-            logger.info(f"Corps de la réponse (Start) : {start_response.text}")
-
-            if start_response.status_code in [200, 201, 202]:
-                logger.info("✅ Entraînement Cloud démarré avec succès !")
-                logger.info(
-                    f"🔗 Suivi : https://platform.ultralytics.com/models/{model_id}"
-                )
-            else:
-                logger.error(
-                    f"❌ Échec du Compute Cloud. Code: {start_response.status_code}"
-                )
-
-        except Exception as e:
-            logger.error(f"Échec de l'entraînement : {e}")
-            sys.exit(1)
-
-
-def run():
-    """Lance l'étape d'entraînement."""
-    CloudTrainer().train()
-
-
-if __name__ == "__main__":
-    run()
+def run() -> None:
+    """Point d'entrée de l'étape de training."""
+    try:
+        CloudTrainer().train()
+    except Exception as exc:
+        logger.error("Échec de l'entraînement : %s", exc)
+        sys.exit(1)

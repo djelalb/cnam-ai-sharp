@@ -142,8 +142,10 @@
         // 3. Capture et Envoi
         function sendFrame() {
             if (socket && socket.readyState === WebSocket.OPEN) {
-                hiddenCtx.drawImage(video, 0, 0, 640, 480);
-                const base64Image = hiddenCanvas.toDataURL('image/jpeg', 0.6); // Compression JPEG 60%
+                // On capture en haute qualité
+                hiddenCtx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+                // Augmentation de la qualité pour aider la détection des doigts fins
+                const base64Image = hiddenCanvas.toDataURL('image/jpeg', 0.8);
                 socket.send(base64Image);
             }
         }

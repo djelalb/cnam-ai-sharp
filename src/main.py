@@ -1,13 +1,16 @@
 """
-Orchestrateur principal du projet SHARP.
-Permet de piloter les étapes de la pipeline ML.
+Orchestrateur de la pipeline ML du projet SHARP.
+
+Déroule les 6 étapes du cycle ML (cf. ``src.pipeline``). Certaines étapes sont déléguées
+à la plateforme Ultralytics etsont tracées plutôt qu'exécutées localement, afin
+de rendre le pipeline lisible de bout en bout.
 """
 
 import argparse
 import logging
 import sys
 
-from src.pipeline import extraction, preparation, training, validation
+from src.pipeline import PIPELINE
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -15,35 +18,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="SHARP Pipeline Orchestrator")
     parser.add_argument(
         "step",
-        choices=["extraction", "validation", "preparation", "training", "all"],
-        help="Étape de la pipeline à exécuter",
+        choices=[stage.key for stage in PIPELINE] + ["all"],
+        help="Étape de la pipeline à exécuter ('all' pour tout dérouler)",
     )
-
     args = parser.parse_args()
 
     try:
-        if args.step == "extraction" or args.step == "all":
-            extraction.run()
-
-        if args.step == "validation" or args.step == "all":
-            validation.run()
-
-        if args.step == "preparation" or args.step == "all":
-            preparation.run()
-
-        if args.step == "training" or args.step == "all":
-            training.run()
-
+        for index, stage in enumerate(PIPELINE, start=1):
+            if args.step not in ("all", stage.key):
+                continue
+            logger.info(
+                "[%d/%d] %s (%s)",
+                index,
+                len(PIPELINE),
+                stage.name.upper(),
+                stage.kind.value,
+            )
+            stage.run()
     except KeyboardInterrupt:
-        logger.info("\nArrêt par l'utilisateur.")
+        logger.info("Arrêt par l'utilisateur.")
         sys.exit(0)
-    except Exception as e:
-        logger.error(f"Erreur lors de l'exécution : {e}")
-        sys.exit(1)
 
 
 if __name__ == "__main__":

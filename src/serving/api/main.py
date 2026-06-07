@@ -3,6 +3,7 @@ Point d'entrée de l'API de serving.
 Gère les interfaces de communication (HTTP/WS).
 """
 
+import asyncio
 import base64
 import logging
 from contextlib import asynccontextmanager
@@ -19,7 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Injection de dépendance simplifiée
 inference_service = None
 
 
@@ -46,13 +46,14 @@ async def video_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Décodage rapide
             _, encoded = data.split(",", 1) if "," in data else (None, data)
             img_bytes = base64.b64decode(encoded)
             img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
 
             if img is not None:
-                result = inference_service.predict(img)
+                # Inférence CPU déportée dans un thread pour ne pas bloquer
+                # la boucle asyncio (préserve le débit du WebSocket).
+                result = await asyncio.to_thread(inference_service.predict, img)
                 await websocket.send_json(result)
 
     except WebSocketDisconnect:

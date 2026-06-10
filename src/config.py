@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     EVAL_SPLIT: str = "val"  # split d'évaluation (la plateforme exporte train/val)
 
     # Hyperparamètres d'entraînement (augmentations incluses)
-    EPOCHS: int = Field(200, validation_alias="ULTRALYTICS_EPOCHS")
-    PATIENCE: int = Field(50, validation_alias="ULTRALYTICS_PATIENCE")
+    EPOCHS: int = 200
+    PATIENCE: int = 50
     AUG_DEGREES: float = 15.0
     AUG_HSV_V: float = 0.6
     AUG_MOSAIC: float = 0.7

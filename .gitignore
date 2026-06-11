@@ -36,6 +36,7 @@ runs/
 *.log
 .DS_Store
 *.pt
+!models/ai-sharp-exp-2.pt
 .env.local
 
 # Tools

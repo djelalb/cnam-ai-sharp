@@ -33,7 +33,6 @@ ENV/
 # ML specific
 data/
 runs/
-models/
 *.log
 .DS_Store
 *.pt

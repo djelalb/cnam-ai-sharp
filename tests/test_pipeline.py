@@ -10,9 +10,9 @@ def test_data_config_always_declares_train_and_val():
     """Ultralytics exige train ET val, même si seul 'val' est disponible."""
     config = build_data_config({0: "0", 1: "1"}, {"val"}, root="/data")
 
-    assert {"train", "val", "test"} <= config.keys()
+    assert {"train", "val"} <= config.keys()
     assert config["names"] == {0: "0", 1: "1"}
-    assert config["test"] == config["val"]
+    assert "test" not in config
 
 
 def test_data_config_maps_each_existing_split():
@@ -20,6 +20,13 @@ def test_data_config_maps_each_existing_split():
 
     assert config["train"] == "train/images"
     assert config["val"] == "val/images"
+    assert "test" not in config
+
+
+def test_data_config_includes_test_split_when_present():
+    config = build_data_config({0: "0"}, {"train", "val", "test"}, root="/data")
+
+    assert config["test"] == "test/images"
 
 
 def _write_manifest(tmp_path, boxes):

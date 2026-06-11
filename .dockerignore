@@ -14,4 +14,4 @@ __pycache__/
 
 # Modèles : seul le modèle de production est copié dans l'image
 models/*
-!models/ai-sharp-exp-2.pt
+!models/ai-sharp-exp-prod.pt

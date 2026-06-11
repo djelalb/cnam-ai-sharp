@@ -40,7 +40,7 @@ class InferenceService:
 
         results = self.model(
             frame,
-            imgsz=settings.IMG_SIZE,
+            imgsz=settings.SERVING_IMG_SIZE,
             conf=settings.CONFIDENCE,
             iou=settings.IOU_THRESHOLD,
             max_det=settings.MAX_DET,

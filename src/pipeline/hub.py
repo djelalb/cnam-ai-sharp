@@ -54,7 +54,7 @@ def download_model(name: str, dest_dir: Path) -> Path:
 
 
 def _resolve_model_id(name: str) -> str:
-    """Résout l'ID d'un run à partir de son slug (ex: ``ai-sharp-exp-2``)."""
+    """Résout l'ID d'un run à partir de son slug (ex: ``ai-sharp-exp-prod``)."""
     response = requests.get(
         f"{BASE_URL}/models",
         headers=headers(),

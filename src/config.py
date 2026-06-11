@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ULTRALYTICS_USERNAME: str = "djelal-boudji"
     ULTRALYTICS_PROJECT: str = "ai-sharp"
     ULTRALYTICS_DATASET: str = "hands"
-    ULTRALYTICS_EXP_NAME: str = "ai-sharp-exp-2"
+    ULTRALYTICS_EXP_NAME: str = "ai-sharp-exp-prod"
 
     # Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
@@ -30,22 +30,23 @@ class Settings(BaseSettings):
     DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
 
     # AI Model (modèle de production : serving + sélection)
-    MODEL_PATH: Path = MODELS_DIR / "ai-sharp-exp-2.pt"
+    MODEL_PATH: Path = MODELS_DIR / "ai-sharp-exp-prod.pt"
     MODEL_VARIANT: str = "yolo11s.pt"
     IMG_SIZE: int = 640  # aligné sur la frame capturée (640x480)
+    SERVING_IMG_SIZE: int = 416  # inférence temps réel CPU : plus petit = plus de FPS
     CONFIDENCE: float = 0.4
-    IOU_THRESHOLD: float = 0.45
+    IOU_THRESHOLD: float = 0.3
     MAX_DET: int = 4  # au plus 4 mains par frame
-    EVAL_SPLIT: str = "val"  # split d'évaluation (la plateforme exporte train/val)
+    EVAL_SPLIT: str = "test"  # split d'évaluation finale
 
     # Hyperparamètres d'entraînement (augmentations incluses)
-    EPOCHS: int = 200
+    EPOCHS: int = 300
     PATIENCE: int = 50
-    AUG_DEGREES: float = 15.0
-    AUG_HSV_V: float = 0.6
-    AUG_MOSAIC: float = 0.7
-    AUG_MIXUP: float = 0.1
+    AUG_DEGREES: float = 20.0
+    AUG_HSV_V: float = 0.7
+    AUG_MOSAIC: float = 0.6
     AUG_FLIPLR: float = 0.5
+    AUG_MIXUP: float = 0.2
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore"

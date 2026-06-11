@@ -64,7 +64,7 @@ localement au format YOLO. Chaque étape est un module dédié.
 | 3 | Préparation | local | NDJSON → images + labels YOLO + `config.yaml` |
 | 4 | Training | local → cloud | déclenche le job d'entraînement GPU sur Ultralytics |
 | 5 | Évaluation | local | télécharge les poids du run choisi → `model.val()` (split val) |
-| 6 | Sélection | manuel | run retenu après analyse de l'experiment tracking (`ai-sharp-exp-2.pt`) |
+| 6 | Sélection | manuel | run retenu après analyse de l'experiment tracking (`ai-sharp-exp-prod.pt`) |
 
 ```bash
 # Dérouler toute la pipeline
@@ -74,12 +74,12 @@ python -m src.main all
 python -m src.main [extraction|validation|preparation|training|evaluation|selection]
 
 # Évaluer un run précis sans saisie interactive (nom visible dans l'URL du run)
-python -m src.main evaluation --model ai-sharp-exp-2
+python -m src.main evaluation --model ai-sharp-exp-prod
 ```
 
 > 🔎 L'**évaluation** porte sur le modèle *réellement entraîné* : le nom du run est
 > demandé (ou passé via `--model`), ses poids `.pt` sont téléchargés depuis la
-> plateforme, puis évalués. Le modèle de production (`ai-sharp-exp-2.pt`) reste réservé au
+> plateforme, puis évalués. Le modèle de production (`ai-sharp-exp-prod.pt`) reste réservé au
 > serving et à l'étape de sélection.
 
 > ⏳ La **préparation** télécharge les images depuis des URLs CDN signées (durée de
@@ -92,7 +92,7 @@ python -m src.main evaluation --model ai-sharp-exp-2
 API **FastAPI** : le frontend capture la webcam, envoie chaque frame via **WebSocket**,
 le backend exécute YOLO et renvoie les boîtes + la somme des doigts, superposées sur
 le flux. Tous les poids vivent dans `models/` ; le modèle de production
-(`models/ai-sharp-exp-2.pt`, défini par `MODEL_PATH`) est chargé au démarrage du conteneur.
+(`models/ai-sharp-exp-prod.pt`, défini par `MODEL_PATH`) est chargé au démarrage du conteneur.
 
 ```bash
 # Docker (recommandé) — charge le modèle et expose le dashboard
@@ -108,7 +108,7 @@ Interface : **http://localhost:8000** — santé : `curl http://localhost:8000/h
 > lancer l'app ou de builder l'image Docker, s'assurer que le modèle de production
 > est présent dans `models/` :
 > ```bash
-> python -m src.main evaluation --model ai-sharp-exp-2   # télécharge models/ai-sharp-exp-2.pt
+> python -m src.main evaluation --model ai-sharp-exp-prod   # télécharge models/ai-sharp-exp-prod.pt
 > ```
 > (ou copier le fichier directement dans `models/`). Pour servir un autre modèle,
 > placer son `.pt` dans `models/` et mettre à jour `MODEL_PATH` dans `config.py`.

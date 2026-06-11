@@ -3,8 +3,7 @@
 
 Télécharge les poids du run à évaluer (nom passé en argument, ex: ``exp-14``,
 sinon demandé de façon interactive) puis rejoue l'évaluation officielle via
-``model.val()`` — la méthode exigée par le sujet — sur le split de validation.
-La plateforme n'exporte que train/val : l'évaluation se fait donc sur ``val``.
+``model.val()`` — la méthode exigée par le sujet — sur le split de test.
 """
 
 import logging
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def run(model_name: str | None = None) -> None:
-    """Évalue le run ``model_name`` (demandé si absent) sur le split de validation."""
+    """Évalue le run ``model_name`` (demandé si absent) sur le split de test."""
     if not settings.DATA_CONFIG.exists():
         logger.info("Évaluation ignorée : dataset non préparé (lancez 'preparation').")
         return
@@ -35,7 +34,7 @@ def run(model_name: str | None = None) -> None:
 
 
 def _evaluate(name: str) -> None:
-    """Télécharge les poids du run et journalise les métriques de ``val``."""
+    """Télécharge les poids du run et journalise les métriques de ``test``."""
     weights = hub.download_model(name, settings.MODELS_DIR)
 
     from ultralytics import YOLO

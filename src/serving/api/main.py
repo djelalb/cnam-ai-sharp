@@ -4,7 +4,6 @@ Gère les interfaces de communication (HTTP/WS).
 """
 
 import asyncio
-import base64
 import logging
 from contextlib import asynccontextmanager
 
@@ -45,9 +44,15 @@ async def video_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            data = await websocket.receive_text()
-            _, encoded = data.split(",", 1) if "," in data else (None, data)
-            img_bytes = base64.b64decode(encoded)
+            # Frames JPEG attendues en binaire (pas de base64 : -33 % de payload).
+            # Les frames texte (ancien format data URL) sont ignorées sans
+            # fermer la connexion, le temps que le client recharge la page.
+            message = await websocket.receive()
+            if message["type"] == "websocket.disconnect":
+                raise WebSocketDisconnect(message.get("code", 1000))
+            img_bytes = message.get("bytes")
+            if img_bytes is None:
+                continue
             img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
 
             if img is not None:

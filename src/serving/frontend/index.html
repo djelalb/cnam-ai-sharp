@@ -90,6 +90,15 @@
         let socket = null;
         let lastFrameTime = Date.now();
 
+        // Pipeline d'envoi : on garde jusqu'à 2 frames en vol pour que le
+        // réseau et l'inférence travaillent en parallèle (au lieu d'attendre
+        // chaque réponse avant d'envoyer la frame suivante).
+        const MAX_IN_FLIGHT = 2;
+        const SEND_INTERVAL_MS = 33; // ~30 tentatives/s, borné par MAX_IN_FLIGHT
+        const JPEG_QUALITY = 0.6;
+        let inFlight = 0;
+        let sendTimer = null;
+
         // 1. Accès Webcam
         async function setupWebcam() {
             try {
@@ -114,16 +123,19 @@
             socket.onopen = () => {
                 statusDot.className = "w-3 h-3 bg-green-500 rounded-full";
                 statusText.innerText = "Connecté";
-                sendFrame();
+                inFlight = 0;
+                sendTimer = setInterval(sendFrame, SEND_INTERVAL_MS);
             };
 
             socket.onclose = () => {
                 statusDot.className = "w-3 h-3 bg-red-500 rounded-full animate-pulse";
                 statusText.innerText = "Déconnecté";
+                clearInterval(sendTimer);
                 setTimeout(connect, 2000);
             };
 
             socket.onmessage = (event) => {
+                inFlight = Math.max(0, inFlight - 1);
                 const data = JSON.parse(event.data);
                 drawBoxes(data.boxes);
                 counterEl.innerText = data.total_fingers;
@@ -132,17 +144,24 @@
                 const now = Date.now();
                 fpsEl.innerText = Math.round(1000 / (now - lastFrameTime));
                 lastFrameTime = now;
-
-                requestAnimationFrame(sendFrame);
             };
         }
 
-        // 3. Capture et Envoi
+        // 3. Capture et Envoi (JPEG binaire, sans base64)
         function sendFrame() {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                hiddenCtx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-                socket.send(hiddenCanvas.toDataURL('image/jpeg', 0.8));
-            }
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+            if (inFlight >= MAX_IN_FLIGHT) return;
+            if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+
+            inFlight++;
+            hiddenCtx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            hiddenCanvas.toBlob(blob => {
+                if (blob && socket.readyState === WebSocket.OPEN) {
+                    socket.send(blob);
+                } else {
+                    inFlight = Math.max(0, inFlight - 1);
+                }
+            }, 'image/jpeg', JPEG_QUALITY);
         }
 
         // 4. Dessin des Bounding Boxes

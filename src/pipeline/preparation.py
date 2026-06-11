@@ -30,8 +30,8 @@ def build_data_config(names: dict[int, str], splits: set[str], root: Path) -> di
     """Construit le dict ``config.yaml`` attendu par Ultralytics.
 
     Les clés ``train`` et ``val`` sont obligatoires : un split absent est
-    replié sur un split disponible (la plateforme n'exporte que train/val,
-    donc ``test`` pointe alors sur ``val``).
+    replié sur un split disponible. La clé ``test`` n'est ajoutée que si le
+    split correspondant est effectivement présent dans l'export.
     """
     available = {s: f"{s}/images" for s in ("train", "val", "test") if s in splits}
     config = {
@@ -40,7 +40,8 @@ def build_data_config(names: dict[int, str], splits: set[str], root: Path) -> di
         "val": available.get("val", available.get("train", "train/images")),
         "names": names,
     }
-    config["test"] = available.get("test", config["val"])
+    if "test" in available:
+        config["test"] = available["test"]
     return config
 
 

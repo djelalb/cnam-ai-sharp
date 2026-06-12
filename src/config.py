@@ -5,7 +5,7 @@ Seule source de vérité pour le projet.
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     DATA_CONFIG: Path = PROCESSED_DATA_DIR / "config.yaml"
 
     # AI Model (modèle de production : serving + sélection)
-    MODEL_PATH: Path = MODELS_DIR / "ai-sharp-exp-prod.pt"
+    MODEL_NAME: str = ""
     MODEL_VARIANT: str = "yolo11s.pt"
     IMG_SIZE: int = 640  # aligné sur la frame capturée (640x480)
     SERVING_IMG_SIZE: int = 416  # inférence temps réel CPU : plus petit = plus de FPS
@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore"
     )
+
+    @model_validator(mode="after")
+    def _derive_model_name(self) -> "Settings":
+        """Sans MODEL_NAME explicite, servir les poids du run de production."""
+        if not self.MODEL_NAME:
+            self.MODEL_NAME = f"{self.ULTRALYTICS_EXP_NAME}.pt"
+        return self
+
+    @property
+    def MODEL_PATH(self) -> Path:
+        """Chemin du modèle servi, dérivé de MODEL_NAME."""
+        return self.MODELS_DIR / self.MODEL_NAME
 
 
 settings = Settings()

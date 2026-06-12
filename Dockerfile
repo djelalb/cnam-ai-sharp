@@ -26,12 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
-# Copy app code + modèle de production (depuis models/)
+# Copy app code — le modèle n'est PAS embarqué dans l'image :
+# il est monté en volume sur /app/models (cf. docker-compose.yml),
+# ce qui permet d'en changer sans rebuild via MODEL_NAME.
 COPY src/ /app/src/
-COPY models/ai-sharp-exp-prod.pt /app/models/ai-sharp-exp-prod.pt
 
-# Configuration
-ENV MODEL_PATH=/app/models/ai-sharp-exp-prod.pt
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000

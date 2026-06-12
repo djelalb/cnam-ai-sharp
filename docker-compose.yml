@@ -3,7 +3,12 @@ services:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      # Modèle servi (fichier dans ./models). Changer de modèle sans rebuild :
+      #   MODEL_NAME=exp-17.pt docker compose up -d
+      MODEL_NAME: ${MODEL_NAME:-}
     volumes:
+      - ./models:/app/models:ro
       - .env.local:/app/.env.local:ro
     restart: always
     healthcheck:

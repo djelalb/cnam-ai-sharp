@@ -91,12 +91,13 @@ python -m src.main evaluation --model ai-sharp-exp-prod
 
 API **FastAPI** : le frontend capture la webcam, envoie chaque frame via **WebSocket**,
 le backend exécute YOLO et renvoie les boîtes + la somme des doigts, superposées sur
-le flux. Tous les poids vivent dans `models/` ; le modèle de production
-(`models/ai-sharp-exp-prod.pt`, défini par `MODEL_PATH`) est chargé au démarrage du conteneur.
+le flux.
+
+### Lancement
 
 ```bash
-# Docker (recommandé) — charge le modèle et expose le dashboard
-docker-compose up --build
+# Docker (recommandé)
+docker compose up --build
 
 # Ou en local
 python -m src.serving.api.main
@@ -104,14 +105,24 @@ python -m src.serving.api.main
 
 Interface : **http://localhost:8000** — santé : `curl http://localhost:8000/health`
 
-> 📦 Les poids `.pt` ne sont pas versionnés (gitignorés, fichiers lourds). Avant de
-> lancer l'app ou de builder l'image Docker, s'assurer que le modèle de production
-> est présent dans `models/` :
-> ```bash
-> python -m src.main evaluation --model ai-sharp-exp-prod   # télécharge models/ai-sharp-exp-prod.pt
-> ```
-> (ou copier le fichier directement dans `models/`). Pour servir un autre modèle,
-> placer son `.pt` dans `models/` et mettre à jour `MODEL_PATH` dans `config.py`.
+### Gestion du modèle
+
+L'image Docker n'embarque **que le code**, jamais les poids (`.dockerignore` exclut
+`models/`). Au runtime, `docker-compose.yml` monte `./models` en volume **lecture
+seule** sur `/app/models`, et la variable d'environnement `MODEL_NAME` désigne le
+fichier `.pt` servi. Par défaut : le modèle de production (`ai-sharp-exp-prod.pt`),
+seul poids versionné dans le dépôt — les autres sont gitignorés. Le modèle chargé
+est loggé au démarrage.
+
+Changer de modèle ne demande **ni rebuild ni modification de code** : placer le
+`.pt` dans `models/` (ou le télécharger : `python -m src.main evaluation --model <run>`),
+puis :
+
+```bash
+MODEL_NAME=exp-17.pt docker compose up -d
+```
+
+Pour un choix persistant, définir `MODEL_NAME` dans `.env` ou `.env.local`.
 
 ## 🧪 Qualité
 

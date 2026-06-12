@@ -19,5 +19,5 @@ def run() -> None:
     logger.info(
         "Sélection manuelle : modèle retenu après analyse de l'experiment "
         "tracking → %s (servi par l'application web).",
-        settings.MODEL_PATH.name,
+        settings.MODEL_NAME,
     )

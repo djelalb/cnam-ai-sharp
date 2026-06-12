@@ -1,4 +1,4 @@
-# Contexte de build minimal : on n'embarque que le code et le modèle de prod
+# Contexte de build minimal : on n'embarque que le code
 venv/
 data/
 runs/
@@ -12,6 +12,5 @@ __pycache__/
 .env
 .env.local
 
-# Modèles : seul le modèle de production est copié dans l'image
-models/*
-!models/ai-sharp-exp-prod.pt
+# Modèles : jamais dans l'image, montés en volume au runtime
+models/
